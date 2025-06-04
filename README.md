@@ -15,3 +15,8 @@ git branch -m main
 
 ### (5) 강제 푸시
 git push --force origin main
+
+
+# 익스텐션 백업
+code --list-extensions > extensions.txt
+cat extensions.txt |% { code --install-extension $_}
