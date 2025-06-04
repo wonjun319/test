@@ -17,7 +17,7 @@ git branch -m main
 git push --force origin main
 
 
-# 익스텐션 백업
+# VSCODE 익스텐션 백업
 code --list-extensions > extensions.txt
 <br>
 cat extensions.txt |% { code --install-extension $_}
