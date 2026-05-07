@@ -3,701 +3,401 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>생산 작업 진행률</title>
+<title>거래처 공정 진행률 관리</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3350;
-    --accent: #4f8ef7;
-    --accent2: #7c5cfc;
-    --green: #22c55e;
-    --yellow: #f59e0b;
-    --red: #ef4444;
-    --text: #e8eaf6;
-    --text-dim: #7b82a8;
-    --text-muted: #4a5080;
-    --radius: 10px;
-  }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    background: #f5f5f3;
+    color: #1a1a1a;
     min-height: 100vh;
-    padding: 20px;
+    padding: 2rem;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #1a1a1a;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 2rem;
   }
 
-  /* HEADER */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .header-title {
-    font-size: 20px;
-    font-weight: 900;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .header-sub {
+  /* Summary */
+  .summary-label {
     font-size: 11px;
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 2px;
+    font-weight: 500;
+    letter-spacing: .07em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 10px;
   }
-  .today-badge {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* SUMMARY CARDS */
-  .summary-grid {
+  .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 2rem;
   }
   .summary-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 10px;
     padding: 14px 16px;
-    position: relative;
-    overflow: hidden;
   }
-  .summary-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  .summary-card .s-label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
   }
-  .summary-label {
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-  .summary-pct {
-    font-size: 28px;
-    font-weight: 900;
-    font-family: 'JetBrains Mono', monospace;
-    line-height: 1;
+  .summary-card .s-value {
+    font-size: 22px;
+    font-weight: 500;
     margin-bottom: 8px;
   }
-  .summary-bar-wrap {
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 2px;
+
+  /* Table */
+  .table-wrap {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
     overflow: hidden;
+    margin-bottom: 2rem;
   }
-  .summary-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 1s cubic-bezier(.4,0,.2,1);
-  }
-
-  /* CLIENT BLOCK */
-  .client-block {
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  /* CLIENT HEADER */
-  .client-header {
-    background: linear-gradient(90deg, #1e2340, #1a1d27);
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    user-select: none;
-    border-bottom: 1px solid var(--border);
-  }
-  .client-icon {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 900;
-    color: white;
-    flex-shrink: 0;
-  }
-  .client-name {
-    font-size: 15px;
-    font-weight: 700;
-    flex: 1;
-  }
-  .client-overall {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .client-pct-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .client-minibar {
-    width: 80px;
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .client-minibar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 1s cubic-bezier(.4,0,.2,1);
-  }
-  .chevron {
-    color: var(--text-muted);
-    font-size: 12px;
-    transition: transform .3s;
-    margin-left: 4px;
-  }
-  .client-block.collapsed .chevron { transform: rotate(-90deg); }
-
-  /* SUB-CLIENT */
-  .sub-clients { }
-  .sub-client-block {
-    border-bottom: 1px solid var(--border);
-  }
-  .sub-client-block:last-child { border-bottom: none; }
-
-  .sub-client-header {
-    background: var(--surface);
-    padding: 10px 16px 10px 52px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-  }
-  .sub-client-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
-    flex: 1;
-  }
-  .sub-pct {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .sub-minibar {
-    width: 60px;
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .sub-minibar-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 1s cubic-bezier(.4,0,.2,1);
-  }
-
-  /* PROCESS TABLE */
-  .process-table-wrap {
-    overflow-x: auto;
-    background: var(--bg);
-  }
-  .process-table {
+  table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 700px;
+    font-size: 13px;
   }
-  .process-table thead th {
-    background: #12141e;
-    padding: 8px 12px;
+  thead tr {
+    background: #fafafa;
+    border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  }
+  th {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
     text-align: left;
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
     white-space: nowrap;
   }
-  .process-table tbody tr {
-    transition: background .15s;
-  }
-  .process-table tbody tr:hover {
-    background: var(--surface);
-  }
-  .process-table tbody tr.done {
-    opacity: 0.5;
-  }
-  .process-table td {
-    padding: 9px 12px;
-    border-bottom: 1px solid #1c1f2e;
+  td {
+    padding: 8px 12px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.07);
     vertical-align: middle;
+    color: #1a1a1a;
   }
-  .process-table tbody tr:last-child td {
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Row types */
+  tr.major-client td {
+    background: #0C447C;
+    color: #E6F1FB;
+    font-weight: 500;
+    font-size: 13px;
     border-bottom: none;
   }
-
-  /* STEP NAME */
-  .step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--surface2);
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--text-muted);
-    margin-right: 6px;
-    flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .step-name-cell {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-  }
-  .step-label {
+  tr.minor-client td {
+    background: #185FA5;
+    color: #B5D4F4;
     font-weight: 500;
     font-size: 12px;
+    border-bottom: none;
+  }
+  tr.process-row td { background: #fff; }
+  tr.process-row.done td {
+    background: #f7f7f6;
+    color: #aaa;
+  }
+  tr.process-row.done .process-name {
+    text-decoration: line-through;
+    color: #bbb;
   }
 
-  /* CHECKBOX */
-  .check-cell {
-    text-align: center;
+  /* Progress bar */
+  .bar-outer {
+    height: 8px;
+    background: #f0f0ee;
+    border-radius: 99px;
+    overflow: hidden;
+    border: 0.5px solid rgba(0,0,0,0.08);
   }
-  .check-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .4s ease;
   }
-  .check-wrap input[type=checkbox] {
-    display: none;
-  }
-  .check-box {
-    width: 18px; height: 18px;
-    border-radius: 4px;
-    border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s;
-    font-size: 11px;
-  }
-  .check-wrap input:checked + .check-box {
-    background: var(--green);
-    border-color: var(--green);
-    color: white;
-  }
-
-  /* PROGRESS BAR CELL */
-  .progress-cell {
-    min-width: 130px;
-  }
-  .progress-bar-outer {
+  .bar-row {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  .bar-track {
-    flex: 1;
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
-    min-width: 60px;
-  }
-  .bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width .6s cubic-bezier(.4,0,.2,1);
-  }
+  .bar-row .bar-outer { flex: 1; }
   .bar-pct {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    min-width: 30px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 34px;
     text-align: right;
   }
 
-  /* STATUS BADGE */
-  .status-badge {
+  /* Badge */
+  .badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 99px;
+    font-weight: 500;
   }
-  .status-done { background: rgba(34,197,94,.15); color: var(--green); }
-  .status-ing  { background: rgba(79,142,247,.15); color: var(--accent); }
-  .status-wait { background: rgba(74,80,128,.15);  color: var(--text-muted); }
+  .badge.done { background: #EAF3DE; color: #3B6D11; }
+  .badge.todo { background: #f0f0ee; color: #888; }
 
-  /* DATE */
-  .date-cell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    white-space: nowrap;
+  /* Checkbox */
+  input[type=checkbox] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #639922;
   }
 
-  /* ASSIGNEE */
-  .assignee {
-    display: inline-flex;
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-label { font-size: 13px; color: #888; }
+  select {
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a1a;
+    cursor: pointer;
+  }
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
     align-items: center;
     gap: 5px;
-    white-space: nowrap;
+    font-size: 12px;
+    color: #888;
   }
-  .avatar {
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700; color: white;
-    flex-shrink: 0;
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
   }
 
-  /* NOTE */
-  .note-cell {
-    font-size: 11px;
-    color: var(--text-muted);
-    max-width: 140px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* COLLAPSE ANIM */
-  .sub-client-body {
-    overflow: hidden;
-    transition: max-height .35s cubic-bezier(.4,0,.2,1);
-    max-height: 2000px;
-  }
-  .sub-client-block.collapsed .sub-client-body {
-    max-height: 0;
-  }
-  .client-block.collapsed .sub-clients {
-    display: none;
-  }
-
-  /* COLOR UTILITY */
-  .c-green { color: var(--green); }
-  .c-yellow { color: var(--yellow); }
-  .c-red { color: var(--red); }
-  .c-blue { color: var(--accent); }
-
-  /* FOOTER */
-  .footer {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 10px;
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: .5px;
+  @media (max-width: 700px) {
+    body { padding: 1rem; }
+    table { font-size: 12px; }
+    th, td { padding: 7px 8px; }
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div class="header-title">🏭 생산 작업 진행률 대시보드</div>
-    <div class="header-sub">PRODUCTION PROGRESS TRACKER</div>
+<h1>거래처 공정 진행률 관리</h1>
+<p class="subtitle">실시간 공정 현황 · 체크박스 클릭으로 완료 처리</p>
+
+<div class="summary-label">전체 요약</div>
+<div class="summary-cards" id="summary-cards"></div>
+
+<div class="toolbar">
+  <span class="toolbar-label">필터</span>
+  <select id="filter-select" onchange="renderTable()">
+    <option value="all">전체 보기</option>
+    <option value="todo">미완료만</option>
+    <option value="done">완료만</option>
+  </select>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#A32D2D"></div>0~49%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>50~99%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>100%</div>
   </div>
-  <div class="today-badge" id="todayBadge">—</div>
 </div>
 
-<!-- 요약 카드 -->
-<div class="summary-grid" id="summaryGrid"></div>
-
-<!-- 거래처 블록 -->
-<div id="clientsWrap"></div>
-
-<div class="footer">LAST UPDATED: <span id="lastUpdated">—</span></div>
-
-<script>
-// ──────────────────────────────────────────────
-// DATA
-// ──────────────────────────────────────────────
-const STEPS = ['설계','자재발주','가공','제작','표면처리','조립','검수','포장','운송'];
-
-const data = [
-  {
-    client: '오리온',
-    icon: '오',
-    subs: [
-      {
-        name: '오리온 청주',
-        processes: [
-          { step:'설계',      done:true,  assignee:'김민준', start:'2025-03-01', end:'2025-03-10', note:'도면 완료' },
-          { step:'자재발주',  done:true,  assignee:'이서연', start:'2025-03-11', end:'2025-03-18', note:'전량 입고' },
-          { step:'가공',      done:true,  assignee:'박지훈', start:'2025-03-19', end:'2025-04-02', note:'CNC 완료' },
-          { step:'제작',      done:true,  assignee:'최수아', start:'2025-04-03', end:'2025-04-15', note:'' },
-          { step:'표면처리',  done:true,  assignee:'정도윤', start:'2025-04-16', end:'2025-04-22', note:'도금 완료' },
-          { step:'조립',      done:false, assignee:'강하은', start:'2025-04-23', end:'2025-05-05', note:'진행 중' },
-          { step:'검수',      done:false, assignee:'윤시우', start:'2025-05-06', end:'2025-05-10', note:'' },
-          { step:'포장',      done:false, assignee:'임지아', start:'2025-05-11', end:'2025-05-13', note:'' },
-          { step:'운송',      done:false, assignee:'한준서', start:'2025-05-14', end:'2025-05-15', note:'' },
-        ]
-      },
-      {
-        name: '오리온 인도',
-        processes: [
-          { step:'설계',      done:true,  assignee:'김민준', start:'2025-04-01', end:'2025-04-12', note:'승인 완료' },
-          { step:'자재발주',  done:true,  assignee:'이서연', start:'2025-04-13', end:'2025-04-25', note:'해외 발주' },
-          { step:'가공',      done:false, assignee:'박지훈', start:'2025-04-26', end:'2025-05-10', note:'진행 중' },
-          { step:'제작',      done:false, assignee:'최수아', start:'2025-05-11', end:'2025-05-25', note:'' },
-          { step:'표면처리',  done:false, assignee:'정도윤', start:'2025-05-26', end:'2025-06-02', note:'' },
-          { step:'조립',      done:false, assignee:'강하은', start:'2025-06-03', end:'2025-06-14', note:'' },
-          { step:'검수',      done:false, assignee:'윤시우', start:'2025-06-15', end:'2025-06-18', note:'' },
-          { step:'포장',      done:false, assignee:'임지아', start:'2025-06-19', end:'2025-06-21', note:'' },
-          { step:'운송',      done:false, assignee:'한준서', start:'2025-06-22', end:'2025-06-25', note:'인천→뭄바이' },
-        ]
-      }
-    ]
-  }
-];
-
-// ──────────────────────────────────────────────
-// UTILS
-// ──────────────────────────────────────────────
-function pct(procs) {
-  const done = procs.filter(p => p.done).length;
-  return Math.round(done / procs.length * 100);
-}
-
-function barColor(p) {
-  if (p >= 100) return 'var(--green)';
-  if (p >= 50)  return 'var(--accent)';
-  if (p > 0)    return 'var(--yellow)';
-  return 'var(--red)';
-}
-
-function clientPct(client) {
-  const all = client.subs.flatMap(s => s.processes);
-  return pct(all);
-}
-
-function initials(name) {
-  return name.charAt(0);
-}
-
-function statusBadge(done, idx, procs) {
-  if (done) return `<span class="status-badge status-done">완료</span>`;
-  const prevDone = idx === 0 || procs[idx-1].done;
-  if (prevDone) return `<span class="status-badge status-ing">진행중</span>`;
-  return `<span class="status-badge status-wait">대기</span>`;
-}
-
-// ──────────────────────────────────────────────
-// RENDER
-// ──────────────────────────────────────────────
-function render() {
-  // today
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'});
-  document.getElementById('todayBadge').textContent = dateStr;
-  document.getElementById('lastUpdated').textContent = now.toLocaleString('ko-KR');
-
-  // summary cards
-  const sg = document.getElementById('summaryGrid');
-  sg.innerHTML = '';
-
-  // overall
-  const allProcs = data.flatMap(c => c.subs.flatMap(s => s.processes));
-  const overallP = pct(allProcs);
-  sg.appendChild(makeCard('전체 진행률', overallP, 'linear-gradient(90deg,var(--accent),var(--accent2))'));
-
-  data.forEach(c => {
-    const p = clientPct(c);
-    sg.appendChild(makeCard(c.client, p, barColor(p)));
-    c.subs.forEach(s => {
-      const sp = pct(s.processes);
-      sg.appendChild(makeCard(s.name, sp, barColor(sp)));
-    });
-  });
-
-  // clients
-  const wrap = document.getElementById('clientsWrap');
-  wrap.innerHTML = '';
-  data.forEach((c, ci) => {
-    wrap.appendChild(makeClientBlock(c, ci));
-  });
-}
-
-function makeCard(label, p, color) {
-  const div = document.createElement('div');
-  div.className = 'summary-card';
-  const textColor = p >= 100 ? 'var(--green)' : p >= 50 ? 'var(--accent)' : p > 0 ? 'var(--yellow)' : 'var(--text-muted)';
-  div.innerHTML = `
-    <div class="summary-label">${label}</div>
-    <div class="summary-pct" style="color:${textColor}">${p}%</div>
-    <div class="summary-bar-wrap">
-      <div class="summary-bar-fill" style="width:${p}%;background:${color}"></div>
-    </div>`;
-  return div;
-}
-
-function makeClientBlock(c, ci) {
-  const cp = clientPct(c);
-  const block = document.createElement('div');
-  block.className = 'client-block';
-  block.dataset.ci = ci;
-
-  const hdr = document.createElement('div');
-  hdr.className = 'client-header';
-  hdr.innerHTML = `
-    <div class="client-icon">${c.icon}</div>
-    <div class="client-name">${c.client}</div>
-    <div class="client-overall">
-      <div class="client-pct-label" style="color:${barColor(cp)}">${cp}%</div>
-      <div class="client-minibar">
-        <div class="client-minibar-fill" style="width:${cp}%;background:${barColor(cp)}"></div>
-      </div>
-      <span class="chevron">▼</span>
-    </div>`;
-  hdr.addEventListener('click', () => block.classList.toggle('collapsed'));
-
-  const subsWrap = document.createElement('div');
-  subsWrap.className = 'sub-clients';
-
-  c.subs.forEach((s, si) => {
-    subsWrap.appendChild(makeSubBlock(c, ci, s, si));
-  });
-
-  block.appendChild(hdr);
-  block.appendChild(subsWrap);
-  return block;
-}
-
-function makeSubBlock(c, ci, s, si) {
-  const sp = pct(s.processes);
-  const sub = document.createElement('div');
-  sub.className = 'sub-client-block';
-
-  const shdr = document.createElement('div');
-  shdr.className = 'sub-client-header';
-  shdr.innerHTML = `
-    <div class="sub-client-name">↳ ${s.name}</div>
-    <div class="sub-pct">${sp}%</div>
-    <div class="sub-minibar">
-      <div class="sub-minibar-fill" style="width:${sp}%;background:${barColor(sp)}"></div>
-    </div>
-    <span class="chevron" style="margin-left:8px;color:var(--text-muted);font-size:11px">▼</span>`;
-  shdr.addEventListener('click', () => sub.classList.toggle('collapsed'));
-
-  const body = document.createElement('div');
-  body.className = 'sub-client-body';
-
-  const tableWrap = document.createElement('div');
-  tableWrap.className = 'process-table-wrap';
-
-  const table = document.createElement('table');
-  table.className = 'process-table';
-  table.innerHTML = `
+<div class="table-wrap">
+  <table>
     <thead>
       <tr>
-        <th>#</th>
-        <th>공정</th>
-        <th>완료</th>
-        <th>진행률</th>
-        <th>상태</th>
-        <th>담당자</th>
-        <th>시작일</th>
-        <th>완료예정</th>
+        <th style="width:100px">구분</th>
+        <th style="width:80px">공정명</th>
+        <th style="width:80px">담당자</th>
+        <th style="width:90px">시작일</th>
+        <th style="width:90px">완료예정일</th>
+        <th style="width:68px">완료여부</th>
+        <th style="width:160px">진행률</th>
         <th>비고</th>
       </tr>
     </thead>
-    <tbody></tbody>`;
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
 
-  const tbody = table.querySelector('tbody');
-  s.processes.forEach((p, idx) => {
-    const tr = buildRow(p, idx, s, ci, si);
-    tbody.appendChild(tr);
-  });
+<script>
+const data = [
+  {type:'major', name:'오리온', id:'orion'},
+  {type:'minor', name:'오리온 청주', parent:'orion', id:'orion_cj'},
+  {type:'process', client:'orion_cj', name:'설계',    person:'김민준', start:'2024-01-02', end:'2024-01-10', done:true,  note:'도면 승인 완료'},
+  {type:'process', client:'orion_cj', name:'자재발주', person:'이서연', start:'2024-01-11', end:'2024-01-18', done:true,  note:''},
+  {type:'process', client:'orion_cj', name:'가공',    person:'박도현', start:'2024-01-19', end:'2024-01-30', done:true,  note:''},
+  {type:'process', client:'orion_cj', name:'제작',    person:'최지우', start:'2024-02-01', end:'2024-02-15', done:true,  note:''},
+  {type:'process', client:'orion_cj', name:'표면처리', person:'정하은', start:'2024-02-16', end:'2024-02-22', done:false, note:'진행중'},
+  {type:'process', client:'orion_cj', name:'조립',    person:'한승호', start:'2024-02-23', end:'2024-03-01', done:false, note:''},
+  {type:'process', client:'orion_cj', name:'검수',    person:'오수빈', start:'2024-03-02', end:'2024-03-05', done:false, note:''},
+  {type:'process', client:'orion_cj', name:'포장',    person:'임지훈', start:'2024-03-06', end:'2024-03-08', done:false, note:''},
+  {type:'process', client:'orion_cj', name:'운송',    person:'신예린', start:'2024-03-09', end:'2024-03-12', done:false, note:''},
+  {type:'minor', name:'오리온 인도', parent:'orion', id:'orion_in'},
+  {type:'process', client:'orion_in', name:'설계',    person:'강태양', start:'2024-01-15', end:'2024-01-25', done:true,  note:'현지 규격 반영'},
+  {type:'process', client:'orion_in', name:'자재발주', person:'윤채원', start:'2024-01-26', end:'2024-02-05', done:true,  note:''},
+  {type:'process', client:'orion_in', name:'가공',    person:'문준혁', start:'2024-02-06', end:'2024-02-20', done:false, note:'지연 예상'},
+  {type:'process', client:'orion_in', name:'제작',    person:'배소현', start:'2024-02-21', end:'2024-03-05', done:false, note:''},
+  {type:'process', client:'orion_in', name:'표면처리', person:'조민재', start:'2024-03-06', end:'2024-03-12', done:false, note:''},
+  {type:'process', client:'orion_in', name:'조립',    person:'황지수', start:'2024-03-13', end:'2024-03-20', done:false, note:''},
+  {type:'process', client:'orion_in', name:'검수',    person:'남다은', start:'2024-03-21', end:'2024-03-24', done:false, note:''},
+  {type:'process', client:'orion_in', name:'포장',    person:'류성진', start:'2024-03-25', end:'2024-03-27', done:false, note:''},
+  {type:'process', client:'orion_in', name:'운송',    person:'전아름', start:'2024-03-28', end:'2024-04-01', done:false, note:'해운 예정'},
+];
 
-  tableWrap.appendChild(table);
-  body.appendChild(tableWrap);
-  sub.appendChild(shdr);
-  sub.appendChild(body);
-  return sub;
+function barColor(pct) {
+  if (pct === 100) return '#639922';
+  if (pct >= 50)   return '#BA7517';
+  return '#A32D2D';
 }
 
-function buildRow(proc, idx, s, ci, si) {
-  const procPct = proc.done ? 100 : 0;
-  const tr = document.createElement('tr');
-  if (proc.done) tr.classList.add('done');
-
-  tr.innerHTML = `
-    <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:10px">${String(idx+1).padStart(2,'0')}</td>
-    <td>
-      <div class="step-name-cell">
-        <span class="step-num">${idx+1}</span>
-        <span class="step-label">${proc.step}</span>
-      </div>
-    </td>
-    <td class="check-cell">
-      <label class="check-wrap" data-ci="${ci}" data-si="${si}" data-idx="${idx}">
-        <input type="checkbox" ${proc.done ? 'checked' : ''}>
-        <div class="check-box">${proc.done ? '✓' : ''}</div>
-      </label>
-    </td>
-    <td class="progress-cell">
-      <div class="progress-bar-outer">
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${procPct}%;background:${barColor(procPct)}"></div>
-        </div>
-        <span class="bar-pct" style="color:${barColor(procPct)}">${procPct}%</span>
-      </div>
-    </td>
-    <td>${statusBadge(proc.done, idx, s.processes)}</td>
-    <td>
-      <div class="assignee">
-        <div class="avatar">${initials(proc.assignee)}</div>
-        <span style="font-size:11px;color:var(--text-dim)">${proc.assignee}</span>
-      </div>
-    </td>
-    <td class="date-cell">${proc.start}</td>
-    <td class="date-cell">${proc.end}</td>
-    <td class="note-cell">${proc.note || '—'}</td>`;
-
-  // checkbox interaction
-  const cb = tr.querySelector('input[type=checkbox]');
-  cb.addEventListener('change', function() {
-    const c2 = parseInt(this.closest('label').dataset.ci);
-    const s2 = parseInt(this.closest('label').dataset.si);
-    const i2 = parseInt(this.closest('label').dataset.idx);
-    data[c2].subs[s2].processes[i2].done = this.checked;
-    render();
-  });
-
-  return tr;
+function calcPct(clientId) {
+  const rows = data.filter(d => d.type === 'process' && d.client === clientId);
+  if (!rows.length) return 0;
+  return Math.round(rows.filter(r => r.done).length / rows.length * 100);
 }
 
-// ──────────────────────────────────────────────
-render();
-// ──────────────────────────────────────────────
+function calcMajorPct(majorId) {
+  const minors = data.filter(d => d.type === 'minor' && d.parent === majorId);
+  if (!minors.length) return 0;
+  const vals = minors.map(m => calcPct(m.id));
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
+function barHtml(pct, h = 8) {
+  const c = barColor(pct);
+  return `<div class="bar-row">
+    <div class="bar-outer" style="height:${h}px">
+      <div class="bar-fill" style="width:${pct}%;background:${c}"></div>
+    </div>
+    <span class="bar-pct" style="color:${c}">${pct}%</span>
+  </div>`;
+}
+
+function renderSummary() {
+  const majors = data.filter(d => d.type === 'major');
+  let html = '';
+  majors.forEach(major => {
+    const pct = calcMajorPct(major.id);
+    html += `<div class="summary-card">
+      <div class="s-label">🏢 ${major.name} (대거래처)</div>
+      <div class="s-value" style="color:${barColor(pct)}">${pct}%</div>
+      ${barHtml(pct, 10)}
+    </div>`;
+    data.filter(d => d.type === 'minor' && d.parent === major.id).forEach(m => {
+      const mp = calcPct(m.id);
+      html += `<div class="summary-card">
+        <div class="s-label" style="padding-left:10px">↳ ${m.name}</div>
+        <div class="s-value" style="font-size:18px;color:${barColor(mp)}">${mp}%</div>
+        ${barHtml(mp, 8)}
+      </div>`;
+    });
+  });
+  document.getElementById('summary-cards').innerHTML = html;
+}
+
+function renderTable() {
+  const filter = document.getElementById('filter-select').value;
+  const tbody = document.getElementById('table-body');
+  let html = '';
+
+  let currentMajor = null;
+  let currentMinor = null;
+  let majorVisible = {};
+  let minorVisible = {};
+
+  // Pre-calc visibility
+  data.forEach((row, idx) => {
+    if (row.type === 'major') { currentMajor = row.id; majorVisible[row.id] = false; }
+    if (row.type === 'minor') { currentMinor = row.id; minorVisible[row.id] = false; }
+    if (row.type === 'process') {
+      const show = filter === 'all' || (filter === 'done' && row.done) || (filter === 'todo' && !row.done);
+      if (show) {
+        minorVisible[row.client] = true;
+        const minor = data.find(d => d.type === 'minor' && d.id === row.client);
+        if (minor) majorVisible[minor.parent] = true;
+      }
+    }
+  });
+
+  currentMajor = null; currentMinor = null;
+
+  data.forEach((row, idx) => {
+    if (row.type === 'major') {
+      currentMajor = row;
+      if (filter !== 'all' && !majorVisible[row.id]) return;
+      const pct = calcMajorPct(row.id);
+      html += `<tr class="major-client">
+        <td colspan="2">🏢 ${row.name}</td>
+        <td colspan="2" style="color:#85B7EB;font-size:12px">대거래처</td>
+        <td></td><td></td>
+        <td>${barHtml(pct, 10)}</td>
+        <td></td>
+      </tr>`;
+    } else if (row.type === 'minor') {
+      currentMinor = row;
+      if (filter !== 'all' && !minorVisible[row.id]) return;
+      const pct = calcPct(row.id);
+      html += `<tr class="minor-client">
+        <td colspan="2" style="padding-left:22px">↳ ${row.name}</td>
+        <td colspan="2" style="color:#85B7EB;font-size:12px">소거래처</td>
+        <td></td><td></td>
+        <td>${barHtml(pct, 9)}</td>
+        <td></td>
+      </tr>`;
+    } else {
+      const show = filter === 'all' || (filter === 'done' && row.done) || (filter === 'todo' && !row.done);
+      if (!show) return;
+      const dc = row.done ? 'done' : '';
+      html += `<tr class="process-row ${dc}">
+        <td style="padding-left:36px;color:#aaa;font-size:12px">공정</td>
+        <td><span class="process-name">${row.name}</span></td>
+        <td style="color:#666">${row.person}</td>
+        <td style="color:#888;font-size:12px">${row.start}</td>
+        <td style="color:#888;font-size:12px">${row.end}</td>
+        <td><input type="checkbox" ${row.done ? 'checked' : ''} data-idx="${idx}" onchange="toggle(this)"></td>
+        <td>${barHtml(row.done ? 100 : 0)}</td>
+        <td style="color:#888;font-size:12px">${row.note || ''}</td>
+      </tr>`;
+    }
+  });
+
+  tbody.innerHTML = html;
+}
+
+function toggle(cb) {
+  const idx = parseInt(cb.dataset.idx);
+  data[idx].done = cb.checked;
+  renderTable();
+  renderSummary();
+}
+
+renderSummary();
+renderTable();
 </script>
 </body>
 </html>
