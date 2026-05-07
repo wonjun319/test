@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생산 작업 진행률</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #e8eaf6;
+    --text-dim: #7b82a8;
+    --text-muted: #4a5080;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .today-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SUMMARY CARDS */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .summary-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .summary-pct {
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .summary-bar-wrap {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .summary-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* CLIENT BLOCK */
+  .client-block {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  /* CLIENT HEADER */
+  .client-header {
+    background: linear-gradient(90deg, #1e2340, #1a1d27);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .client-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900;
+    color: white;
+    flex-shrink: 0;
+  }
+  .client-name {
+    font-size: 15px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .client-overall {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .client-pct-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .client-minibar {
+    width: 80px;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .client-minibar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+  .chevron {
+    color: var(--text-muted);
+    font-size: 12px;
+    transition: transform .3s;
+    margin-left: 4px;
+  }
+  .client-block.collapsed .chevron { transform: rotate(-90deg); }
+
+  /* SUB-CLIENT */
+  .sub-clients { }
+  .sub-client-block {
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-client-block:last-child { border-bottom: none; }
+
+  .sub-client-header {
+    background: var(--surface);
+    padding: 10px 16px 10px 52px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-client-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    flex: 1;
+  }
+  .sub-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .sub-minibar {
+    width: 60px;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .sub-minibar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* PROCESS TABLE */
+  .process-table-wrap {
+    overflow-x: auto;
+    background: var(--bg);
+  }
+  .process-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+  }
+  .process-table thead th {
+    background: #12141e;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .process-table tbody tr {
+    transition: background .15s;
+  }
+  .process-table tbody tr:hover {
+    background: var(--surface);
+  }
+  .process-table tbody tr.done {
+    opacity: 0.5;
+  }
+  .process-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #1c1f2e;
+    vertical-align: middle;
+  }
+  .process-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* STEP NAME */
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface2);
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 6px;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .step-name-cell {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .step-label {
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  /* CHECKBOX */
+  .check-cell {
+    text-align: center;
+  }
+  .check-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .check-wrap input[type=checkbox] {
+    display: none;
+  }
+  .check-box {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+    font-size: 11px;
+  }
+  .check-wrap input:checked + .check-box {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+
+  /* PROGRESS BAR CELL */
+  .progress-cell {
+    min-width: 130px;
+  }
+  .progress-bar-outer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* STATUS BADGE */
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-done { background: rgba(34,197,94,.15); color: var(--green); }
+  .status-ing  { background: rgba(79,142,247,.15); color: var(--accent); }
+  .status-wait { background: rgba(74,80,128,.15);  color: var(--text-muted); }
+
+  /* DATE */
+  .date-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* ASSIGNEE */
+  .assignee {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+
+  /* NOTE */
+  .note-cell {
+    font-size: 11px;
+    color: var(--text-muted);
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* COLLAPSE ANIM */
+  .sub-client-body {
+    overflow: hidden;
+    transition: max-height .35s cubic-bezier(.4,0,.2,1);
+    max-height: 2000px;
+  }
+  .sub-client-block.collapsed .sub-client-body {
+    max-height: 0;
+  }
+  .client-block.collapsed .sub-clients {
+    display: none;
+  }
+
+  /* COLOR UTILITY */
+  .c-green { color: var(--green); }
+  .c-yellow { color: var(--yellow); }
+  .c-red { color: var(--red); }
+  .c-blue { color: var(--accent); }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: .5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🏭 생산 작업 진행률 대시보드</div>
+    <div class="header-sub">PRODUCTION PROGRESS TRACKER</div>
+  </div>
+  <div class="today-badge" id="todayBadge">—</div>
+</div>
+
+<!-- 요약 카드 -->
+<div class="summary-grid" id="summaryGrid"></div>
+
+<!-- 거래처 블록 -->
+<div id="clientsWrap"></div>
+
+<div class="footer">LAST UPDATED: <span id="lastUpdated">—</span></div>
+
+<script>
+// ──────────────────────────────────────────────
+// DATA
+// ──────────────────────────────────────────────
+const STEPS = ['설계','자재발주','가공','제작','표면처리','조립','검수','포장','운송'];
+
+const data = [
+  {
+    client: '오리온',
+    icon: '오',
+    subs: [
+      {
+        name: '오리온 청주',
+        processes: [
+          { step:'설계',      done:true,  assignee:'김민준', start:'2025-03-01', end:'2025-03-10', note:'도면 완료' },
+          { step:'자재발주',  done:true,  assignee:'이서연', start:'2025-03-11', end:'2025-03-18', note:'전량 입고' },
+          { step:'가공',      done:true,  assignee:'박지훈', start:'2025-03-19', end:'2025-04-02', note:'CNC 완료' },
+          { step:'제작',      done:true,  assignee:'최수아', start:'2025-04-03', end:'2025-04-15', note:'' },
+          { step:'표면처리',  done:true,  assignee:'정도윤', start:'2025-04-16', end:'2025-04-22', note:'도금 완료' },
+          { step:'조립',      done:false, assignee:'강하은', start:'2025-04-23', end:'2025-05-05', note:'진행 중' },
+          { step:'검수',      done:false, assignee:'윤시우', start:'2025-05-06', end:'2025-05-10', note:'' },
+          { step:'포장',      done:false, assignee:'임지아', start:'2025-05-11', end:'2025-05-13', note:'' },
+          { step:'운송',      done:false, assignee:'한준서', start:'2025-05-14', end:'2025-05-15', note:'' },
+        ]
+      },
+      {
+        name: '오리온 인도',
+        processes: [
+          { step:'설계',      done:true,  assignee:'김민준', start:'2025-04-01', end:'2025-04-12', note:'승인 완료' },
+          { step:'자재발주',  done:true,  assignee:'이서연', start:'2025-04-13', end:'2025-04-25', note:'해외 발주' },
+          { step:'가공',      done:false, assignee:'박지훈', start:'2025-04-26', end:'2025-05-10', note:'진행 중' },
+          { step:'제작',      done:false, assignee:'최수아', start:'2025-05-11', end:'2025-05-25', note:'' },
+          { step:'표면처리',  done:false, assignee:'정도윤', start:'2025-05-26', end:'2025-06-02', note:'' },
+          { step:'조립',      done:false, assignee:'강하은', start:'2025-06-03', end:'2025-06-14', note:'' },
+          { step:'검수',      done:false, assignee:'윤시우', start:'2025-06-15', end:'2025-06-18', note:'' },
+          { step:'포장',      done:false, assignee:'임지아', start:'2025-06-19', end:'2025-06-21', note:'' },
+          { step:'운송',      done:false, assignee:'한준서', start:'2025-06-22', end:'2025-06-25', note:'인천→뭄바이' },
+        ]
+      }
+    ]
+  }
+];
+
+// ──────────────────────────────────────────────
+// UTILS
+// ──────────────────────────────────────────────
+function pct(procs) {
+  const done = procs.filter(p => p.done).length;
+  return Math.round(done / procs.length * 100);
+}
+
+function barColor(p) {
+  if (p >= 100) return 'var(--green)';
+  if (p >= 50)  return 'var(--accent)';
+  if (p > 0)    return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function clientPct(client) {
+  const all = client.subs.flatMap(s => s.processes);
+  return pct(all);
+}
+
+function initials(name) {
+  return name.charAt(0);
+}
+
+function statusBadge(done, idx, procs) {
+  if (done) return `<span class="status-badge status-done">완료</span>`;
+  const prevDone = idx === 0 || procs[idx-1].done;
+  if (prevDone) return `<span class="status-badge status-ing">진행중</span>`;
+  return `<span class="status-badge status-wait">대기</span>`;
+}
+
+// ──────────────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────────────
+function render() {
+  // today
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'});
+  document.getElementById('todayBadge').textContent = dateStr;
+  document.getElementById('lastUpdated').textContent = now.toLocaleString('ko-KR');
+
+  // summary cards
+  const sg = document.getElementById('summaryGrid');
+  sg.innerHTML = '';
+
+  // overall
+  const allProcs = data.flatMap(c => c.subs.flatMap(s => s.processes));
+  const overallP = pct(allProcs);
+  sg.appendChild(makeCard('전체 진행률', overallP, 'linear-gradient(90deg,var(--accent),var(--accent2))'));
+
+  data.forEach(c => {
+    const p = clientPct(c);
+    sg.appendChild(makeCard(c.client, p, barColor(p)));
+    c.subs.forEach(s => {
+      const sp = pct(s.processes);
+      sg.appendChild(makeCard(s.name, sp, barColor(sp)));
+    });
+  });
+
+  // clients
+  const wrap = document.getElementById('clientsWrap');
+  wrap.innerHTML = '';
+  data.forEach((c, ci) => {
+    wrap.appendChild(makeClientBlock(c, ci));
+  });
+}
+
+function makeCard(label, p, color) {
+  const div = document.createElement('div');
+  div.className = 'summary-card';
+  const textColor = p >= 100 ? 'var(--green)' : p >= 50 ? 'var(--accent)' : p > 0 ? 'var(--yellow)' : 'var(--text-muted)';
+  div.innerHTML = `
+    <div class="summary-label">${label}</div>
+    <div class="summary-pct" style="color:${textColor}">${p}%</div>
+    <div class="summary-bar-wrap">
+      <div class="summary-bar-fill" style="width:${p}%;background:${color}"></div>
+    </div>`;
+  return div;
+}
+
+function makeClientBlock(c, ci) {
+  const cp = clientPct(c);
+  const block = document.createElement('div');
+  block.className = 'client-block';
+  block.dataset.ci = ci;
+
+  const hdr = document.createElement('div');
+  hdr.className = 'client-header';
+  hdr.innerHTML = `
+    <div class="client-icon">${c.icon}</div>
+    <div class="client-name">${c.client}</div>
+    <div class="client-overall">
+      <div class="client-pct-label" style="color:${barColor(cp)}">${cp}%</div>
+      <div class="client-minibar">
+        <div class="client-minibar-fill" style="width:${cp}%;background:${barColor(cp)}"></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>`;
+  hdr.addEventListener('click', () => block.classList.toggle('collapsed'));
+
+  const subsWrap = document.createElement('div');
+  subsWrap.className = 'sub-clients';
+
+  c.subs.forEach((s, si) => {
+    subsWrap.appendChild(makeSubBlock(c, ci, s, si));
+  });
+
+  block.appendChild(hdr);
+  block.appendChild(subsWrap);
+  return block;
+}
+
+function makeSubBlock(c, ci, s, si) {
+  const sp = pct(s.processes);
+  const sub = document.createElement('div');
+  sub.className = 'sub-client-block';
+
+  const shdr = document.createElement('div');
+  shdr.className = 'sub-client-header';
+  shdr.innerHTML = `
+    <div class="sub-client-name">↳ ${s.name}</div>
+    <div class="sub-pct">${sp}%</div>
+    <div class="sub-minibar">
+      <div class="sub-minibar-fill" style="width:${sp}%;background:${barColor(sp)}"></div>
+    </div>
+    <span class="chevron" style="margin-left:8px;color:var(--text-muted);font-size:11px">▼</span>`;
+  shdr.addEventListener('click', () => sub.classList.toggle('collapsed'));
+
+  const body = document.createElement('div');
+  body.className = 'sub-client-body';
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'process-table-wrap';
+
+  const table = document.createElement('table');
+  table.className = 'process-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>공정</th>
+        <th>완료</th>
+        <th>진행률</th>
+        <th>상태</th>
+        <th>담당자</th>
+        <th>시작일</th>
+        <th>완료예정</th>
+        <th>비고</th>
+      </tr>
+    </thead>
+    <tbody></tbody>`;
+
+  const tbody = table.querySelector('tbody');
+  s.processes.forEach((p, idx) => {
+    const tr = buildRow(p, idx, s, ci, si);
+    tbody.appendChild(tr);
+  });
+
+  tableWrap.appendChild(table);
+  body.appendChild(tableWrap);
+  sub.appendChild(shdr);
+  sub.appendChild(body);
+  return sub;
+}
+
+function buildRow(proc, idx, s, ci, si) {
+  const procPct = proc.done ? 100 : 0;
+  const tr = document.createElement('tr');
+  if (proc.done) tr.classList.add('done');
+
+  tr.innerHTML = `
+    <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:10px">${String(idx+1).padStart(2,'0')}</td>
+    <td>
+      <div class="step-name-cell">
+        <span class="step-num">${idx+1}</span>
+        <span class="step-label">${proc.step}</span>
+      </div>
+    </td>
+    <td class="check-cell">
+      <label class="check-wrap" data-ci="${ci}" data-si="${si}" data-idx="${idx}">
+        <input type="checkbox" ${proc.done ? 'checked' : ''}>
+        <div class="check-box">${proc.done ? '✓' : ''}</div>
+      </label>
+    </td>
+    <td class="progress-cell">
+      <div class="progress-bar-outer">
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${procPct}%;background:${barColor(procPct)}"></div>
+        </div>
+        <span class="bar-pct" style="color:${barColor(procPct)}">${procPct}%</span>
+      </div>
+    </td>
+    <td>${statusBadge(proc.done, idx, s.processes)}</td>
+    <td>
+      <div class="assignee">
+        <div class="avatar">${initials(proc.assignee)}</div>
+        <span style="font-size:11px;color:var(--text-dim)">${proc.assignee}</span>
+      </div>
+    </td>
+    <td class="date-cell">${proc.start}</td>
+    <td class="date-cell">${proc.end}</td>
+    <td class="note-cell">${proc.note || '—'}</td>`;
+
+  // checkbox interaction
+  const cb = tr.querySelector('input[type=checkbox]');
+  cb.addEventListener('change', function() {
+    const c2 = parseInt(this.closest('label').dataset.ci);
+    const s2 = parseInt(this.closest('label').dataset.si);
+    const i2 = parseInt(this.closest('label').dataset.idx);
+    data[c2].subs[s2].processes[i2].done = this.checked;
+    render();
+  });
+
+  return tr;
+}
+
+// ──────────────────────────────────────────────
+render();
+// ──────────────────────────────────────────────
+</script>
+</body>
+</html>
